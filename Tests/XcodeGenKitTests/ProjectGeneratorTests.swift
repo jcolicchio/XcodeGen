@@ -420,6 +420,12 @@ class ProjectGeneratorTests: XCTestCase {
                 //     - carthage: CarthageA
                 //     - carthage: CarthageB
                 //       embed: false
+                //     - package: RxSwift
+                //       product: RxSwift
+                //     - package: RxSwift
+                //       product: RxCocoa
+                //     - package: RxSwift
+                //       product: RxRelay
                 // iOSFrameworkB
                 //   dependencies:
                 //     - target: iOSFrameworkA
@@ -461,6 +467,10 @@ class ProjectGeneratorTests: XCTestCase {
                 //     - target: iOSFrameworkB
                 //     - carthage: CarthageD
                 //
+                // packages:
+                //   RxSwift:
+                //     url: https://github.com/ReactiveX/RxSwift
+                //     majorVersion: 5.1.0
 
                 var expectedResourceFiles: [String: Set<String>] = [:]
                 var expectedBundlesFiles: [String: Set<String>] = [:]
@@ -481,6 +491,9 @@ class ProjectGeneratorTests: XCTestCase {
                 expectedLinkedFiles[app.name] = Set([
                     "FrameworkA.framework",
                     "FrameworkB.framework",
+                    "RxSwift",
+                    "RxCocoa",
+                    "RxRelay",
                 ])
                 expectedEmbeddedFrameworks[app.name] = Set([
                     "FrameworkA.framework",
@@ -545,8 +558,13 @@ class ProjectGeneratorTests: XCTestCase {
                         Dependency(type: .target, reference: resourceBundle.name),
                         Dependency(type: .framework, reference: "FrameworkC.framework"),
                         Dependency(type: .carthage(findFrameworks: false, linkType: .dynamic), reference: "CarthageA"),
+                        Dependency(type: .package(product: "RxSwift"), reference: "RxSwift"),
+                        Dependency(type: .package(product: "RxCocoa"), reference: "RxSwift"),
+                        Dependency(type: .package(product: "RxRelay"), reference: "RxSwift"),
+
                         // Statically linked, so don't embed into test
                         Dependency(type: .target, reference: staticLibrary.name),
+
                         Dependency(type: .carthage(findFrameworks: false, linkType: .dynamic), reference: "CarthageB", embed: false),
                         Dependency(type: .bundle, reference: "BundleA.bundle"),
                     ]
@@ -564,6 +582,9 @@ class ProjectGeneratorTests: XCTestCase {
                     "CarthageZ.framework",
                     "CarthageA.framework",
                     "CarthageB.framework",
+                    "RxSwift",
+                    "RxCocoa",
+                    "RxRelay",
                 ])
                 expectedEmbeddedFrameworks[iosFrameworkA.name] = Set()
 
@@ -672,9 +693,14 @@ class ProjectGeneratorTests: XCTestCase {
 
                 let targets = [app, iosFrameworkZ, iosFrameworkX, staticLibrary, resourceBundle, iosFrameworkA, iosFrameworkB, appTest, appTestWithoutTransitive, stickerPack]
 
+                let packages: [String: SwiftPackage] = [
+                    "RxSwift": .remote(url: "https://github.com/ReactiveX/RxSwift", versionRequirement: .upToNextMajorVersion("5.1.1")),
+                ]
+
                 let project = Project(
                     name: "test",
                     targets: targets,
+                    packages: packages,
                     options: SpecOptions(transitivelyLinkDependencies: true)
                 )
                 let pbxProject = try project.generatePbxProj()
@@ -711,6 +737,7 @@ class ProjectGeneratorTests: XCTestCase {
                     let expectedLinkedFiles = expectedLinkedFiles[target.name]!
                     try expect(frameworkPhases.count) == (expectedLinkedFiles.isEmpty ? 0 : 1)
                     if !expectedLinkedFiles.isEmpty {
+                        // FIXME: How to retrieve product referenced (SwiftPackage) frameworkPhase ?
                         let linkFrameworks = (frameworkPhases[0].files ?? [])
                             .compactMap { $0.file?.nameOrPath }
                         try expect(Array(Set(linkFrameworks)).sorted()) == Array(expectedLinkedFiles).sorted()
