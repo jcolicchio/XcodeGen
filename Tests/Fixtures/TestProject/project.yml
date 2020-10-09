@@ -21,6 +21,7 @@ fileGroups:
   - FileGroup
   - SomeFile
   - Utilities
+  - App_iOS/Location.gpx
 projectReferences:
   AnotherProject:
     path: ./AnotherProject/AnotherProject.xcodeproj
@@ -349,7 +350,7 @@ schemes:
     run:
       simulateLocation:
         allow: true
-        defaultLocation: Honolulu, HI, USA
+        defaultLocation: App_iOS/Location.gpx
       customLLDBInit: ${SRCROOT}/.lldbinit
     test:
       gatherCoverageData: true
